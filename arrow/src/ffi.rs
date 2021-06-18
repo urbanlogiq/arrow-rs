@@ -489,7 +489,7 @@ impl FFI_ArrowArray {
     }
 
     // create an empty `FFI_ArrowArray`, which can be used to import data into
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             length: 0,
             null_count: 0,
