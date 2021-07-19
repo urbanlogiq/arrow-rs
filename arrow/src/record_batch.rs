@@ -24,11 +24,6 @@ use crate::array::*;
 use crate::datatypes::*;
 use crate::error::{ArrowError, Result};
 
-fn dump_backtrace() {
-    let bt = backtrace::Backtrace::new();
-    println!("XXX: backtrace = {:?}", bt);
-}
-
 /// A two-dimensional batch of column-oriented data with a defined
 /// [schema](crate::datatypes::Schema).
 ///
@@ -143,7 +138,6 @@ impl RecordBatch {
                     ));
                 }
                 if column.data_type() != schema.field(i).data_type() {
-                    dump_backtrace();
                     return Err(ArrowError::InvalidArgumentError(format!(
                         "column types must match schema types, expected {:?} but found {:?} at column index {}",
                         schema.field(i).data_type(),
@@ -163,7 +157,6 @@ impl RecordBatch {
                     .data_type()
                     .equals_datatype(schema.field(i).data_type())
                 {
-                    dump_backtrace();
                     return Err(ArrowError::InvalidArgumentError(format!(
                         "column types must match schema types, expected {:?} but found {:?} at column index {}",
                         schema.field(i).data_type(),
