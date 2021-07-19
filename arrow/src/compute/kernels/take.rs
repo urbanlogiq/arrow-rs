@@ -451,7 +451,7 @@ where
     };
 
     let data = ArrayData::new(
-        T::DATA_TYPE,
+        values.data_type().clone(),
         indices.len(),
         None,
         nulls,
@@ -1023,6 +1023,51 @@ mod tests {
             vec![Some(-3.1), None, None, Some(-3.1), Some(2.21)],
         )
         .unwrap();
+
+        // TimestampNanoseconds (tz=None)
+        test_take_primitive_arrays::<TimestampNanosecondType>(
+            vec![
+                Some(1_000_000),
+                None,
+                Some(1_010_000),
+                Some(1_035_000),
+                None,
+            ],
+            &index,
+            None,
+            vec![
+                Some(1_035_000),
+                None,
+                None,
+                Some(1_035_000),
+                Some(1_010_000),
+            ],
+        )
+        .unwrap();
+
+        // TimestampNanoseconds (tz=UTC)
+        let data = vec![
+            Some(1_000_000),
+            None,
+            Some(1_010_000),
+            Some(1_035_000),
+            None,
+        ];
+        let output = TimestampNanosecondArray::from_opt_vec(data, Some("UTC".to_owned()));
+        let expected_data = vec![
+            Some(1_035_000),
+            None,
+            None,
+            Some(1_035_000),
+            Some(1_010_000),
+        ];
+        let expected = Arc::new(TimestampNanosecondArray::from_opt_vec(
+            expected_data,
+            Some("UTC".to_owned()),
+        )) as ArrayRef;
+        let output = take(&output, &index, None).unwrap();
+        // Array comparisons compare the actual type
+        assert_eq!(&output, &expected);
     }
 
     #[test]

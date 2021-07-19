@@ -268,7 +268,9 @@ where
 
 impl<T: ArrowPrimitiveType> fmt::Debug for PrimitiveArray<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PrimitiveArray<{:?}>\n[\n", T::DATA_TYPE)?;
+        // NOTE: print out actual type, not T::DATA_TYPE because T::DATA_TYPE does not include
+        // timezone information for Timestamp types
+        write!(f, "PrimitiveArray<{:?}>\n[\n", self.data_type())?;
         print_long_array(self, f, |array, index, f| match T::DATA_TYPE {
             DataType::Date32 | DataType::Date64 => {
                 let v = self.value(index).to_isize().unwrap() as i64;
