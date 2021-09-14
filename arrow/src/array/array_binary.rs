@@ -582,6 +582,21 @@ impl From<FixedSizeListArray> for FixedSizeBinaryArray {
     }
 }
 
+impl From<Vec<Vec<u8>>> for FixedSizeBinaryArray {
+    fn from(data: Vec<Vec<u8>>) -> Self {
+        let len = data.len();
+        assert!(len > 0);
+        let size = data[0].len();
+        assert!(data.iter().all(|item| item.len() == size));
+        let data = data.into_iter().flatten().collect::<Vec<_>>();
+        let array_data = ArrayData::builder(DataType::FixedSizeBinary(size as i32))
+            .len(len)
+            .add_buffer(Buffer::from(&data))
+            .build();
+        FixedSizeBinaryArray::from(array_data)
+    }
+}
+
 impl fmt::Debug for FixedSizeBinaryArray {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "FixedSizeBinaryArray<{}>\n[\n", self.value_length())?;
