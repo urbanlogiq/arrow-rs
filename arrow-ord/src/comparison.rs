@@ -844,12 +844,16 @@ pub fn eq_dyn_binary_scalar(
             let left = as_generic_binary_array::<i32>(left);
             eq_binary_scalar(left, right)
         }
+        DataType::FixedSizeBinary(_) => {
+            let left = left.as_any().downcast_ref::<FixedSizeBinaryArray>().unwrap();
+            compare_op_scalar(left, |a| a == right)
+        }
         DataType::LargeBinary => {
             let left = as_generic_binary_array::<i64>(left);
             eq_binary_scalar(left, right)
         }
         _ => Err(ArrowError::ComputeError(
-            "eq_dyn_binary_scalar only supports Binary or LargeBinary arrays".to_string(),
+            "eq_dyn_binary_scalar only supports Binary / FixedSizeBinary / LargeBinary arrays".to_string(),
         )),
     }
 }
