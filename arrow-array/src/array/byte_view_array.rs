@@ -896,15 +896,15 @@ unsafe impl<T: ByteViewType + ?Sized> Array for GenericByteViewArray<T> {
     }
 
     fn shrink_to_fit(&mut self) {
-        /*
         self.views.shrink_to_fit();
-        self.buffers.iter_mut().for_each(|b| b.shrink_to_fit());
-        self.buffers.shrink_to_fit();
+
+        if let Some(buffers) = Arc::get_mut(&mut self.buffers) {
+            buffers.iter_mut().for_each(|b| b.shrink_to_fit());
+        }
+
         if let Some(nulls) = &mut self.nulls {
             nulls.shrink_to_fit();
         }
-        */
-        todo!()
     }
 
     fn offset(&self) -> usize {

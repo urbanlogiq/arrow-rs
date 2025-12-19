@@ -691,7 +691,7 @@ impl<T: ByteViewType> ByteViewScalarImpl<T> {
             (None, vec![])
         } else {
             let (views, buffers, _) = scalar.as_byte_view::<T>().clone().into_parts();
-            (views.first().copied(), buffers)
+            (views.first().copied(), buffers.to_vec())
         }
     }
 
