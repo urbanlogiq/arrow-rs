@@ -63,17 +63,23 @@ impl ArrayReader for StructArrayReader {
     }
 
     fn read_records(&mut self, batch_size: usize) -> Result<usize> {
-        let mut read = None;
+        let mut read: Option<usize> = None;
         for child in self.children.iter_mut() {
             let child_read = child.read_records(batch_size)?;
             match read {
                 Some(expected) => {
                     if expected != child_read {
-                        return Err(general_err!(
-                            "StructArrayReader out of sync in read_records, expected {} read, got {}",
-                            expected,
-                            child_read
-                        ));
+                        // Allow mismatch when one side is 0 (e.g. all-null columns
+                        // with no data pages). Use the larger value.
+                        if child_read == 0 || expected == 0 {
+                            read = Some(expected.max(child_read));
+                        } else {
+                            return Err(general_err!(
+                                "StructArrayReader out of sync in read_records, expected {} read, got {}",
+                                expected,
+                                child_read
+                            ));
+                        }
                     }
                 }
                 None => read = Some(child_read),
@@ -111,18 +117,20 @@ impl ArrayReader for StructArrayReader {
             .map(|reader| reader.consume_batch())
             .collect::<Result<Vec<_>>>()?;
 
-        // check that array child data has same size
-        let children_array_len = children_array
-            .first()
-            .map(|arr| arr.len())
-            .ok_or_else(|| general_err!("Struct array reader should have at least one child!"))?;
+        // Use the maximum child length (some all-null columns may produce 0-length arrays)
+        let children_array_len = children_array.iter().map(|arr| arr.len()).max().unwrap_or(0);
 
-        let all_children_len_eq = children_array
-            .iter()
-            .all(|arr| arr.len() == children_array_len);
-        if !all_children_len_eq {
-            return Err(general_err!("Not all children array length are the same!"));
-        }
+        // Pad any shorter (all-null) children to match the expected length
+        let children_array: Vec<ArrayRef> = children_array
+            .into_iter()
+            .map(|arr| {
+                if arr.len() == children_array_len {
+                    arr
+                } else {
+                    arrow_array::new_null_array(arr.data_type(), children_array_len)
+                }
+            })
+            .collect();
 
         let DataType::Struct(fields) = &self.data_type else {
             return Err(general_err!(
@@ -188,17 +196,21 @@ impl ArrayReader for StructArrayReader {
     }
 
     fn skip_records(&mut self, num_records: usize) -> Result<usize> {
-        let mut skipped = None;
+        let mut skipped: Option<usize> = None;
         for child in self.children.iter_mut() {
             let child_skipped = child.skip_records(num_records)?;
             match skipped {
                 Some(expected) => {
                     if expected != child_skipped {
-                        return Err(general_err!(
-                            "StructArrayReader out of sync, expected {} skipped, got {}",
-                            expected,
-                            child_skipped
-                        ));
+                        if child_skipped == 0 || expected == 0 {
+                            skipped = Some(expected.max(child_skipped));
+                        } else {
+                            return Err(general_err!(
+                                "StructArrayReader out of sync, expected {} skipped, got {}",
+                                expected,
+                                child_skipped
+                            ));
+                        }
                     }
                 }
                 None => skipped = Some(child_skipped),
